@@ -1,28 +1,296 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<style>
-html, body {
-    margin: 0;
-    width: 100%;
-    height: 100%;
-    background: transparent;
-}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enviar Telefone</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-.box {
-    width: 300px;
-    height: 150px;
-    background: white;
-    border-radius: 15px;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-}
-</style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+            display: block;
+        }
+
+        .api-config {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px solid #f0f0f0;
+        }
+
+        .api-config h3 {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+
+        .hint {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 0.8s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
 </head>
 <body>
-    <div class="box"></div>
+    <div class="container">
+        <h1>📱 Enviar Telefone</h1>
+        <p class="subtitle">Envie um número de telefone para a API</p>
+
+        <form id="phoneForm">
+            <div class="form-group">
+                <label for="phone">Número de Telefone</label>
+                <input 
+                    type="tel" 
+                    id="phone" 
+                    placeholder="+5511999999999" 
+                    required
+                    pattern="^\+?[1-9]\d{1,14}$"
+                >
+                <div class="hint">Exemplo: +5511999999999 (com código do país)</div>
+            </div>
+
+            <button type="submit" class="btn" id="submitBtn">
+                Enviar Telefone
+            </button>
+        </form>
+
+        <div id="status" class="status"></div>
+
+        <div class="api-config">
+            <h3>⚙️ Configuração da API</h3>
+            <div class="form-group">
+                <label for="apiUrl">URL da API</label>
+                <input 
+                    type="url" 
+                    id="apiUrl" 
+                    value="http://localhost:5000"
+                    placeholder="https://sua-api.onrender.com"
+                >
+                <div class="hint">Altere para a URL da sua API hospedada</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('phoneForm');
+        const phoneInput = document.getElementById('phone');
+        const apiUrlInput = document.getElementById('apiUrl');
+        const statusDiv = document.getElementById('status');
+        const submitBtn = document.getElementById('submitBtn');
+
+        // Carrega URL da API do localStorage
+        const savedApiUrl = localStorage.getItem('apiUrl');
+        if (savedApiUrl) {
+            apiUrlInput.value = savedApiUrl;
+        }
+
+        // Salva URL da API quando alterada
+        apiUrlInput.addEventListener('change', function() {
+            localStorage.setItem('apiUrl', this.value);
+            showStatus('URL da API salva!', 'success');
+        });
+
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const phone = phoneInput.value.trim();
+            const apiUrl = apiUrlInput.value.trim();
+
+            if (!phone) {
+                showStatus('Por favor, insira um número de telefone', 'error');
+                return;
+            }
+
+            // Validação básica
+            if (!phone.startsWith('+')) {
+                showStatus('O número deve começar com + e o código do país', 'error');
+                return;
+            }
+
+            // Mostra loading
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = 'Enviando<span class="loading"></span>';
+            showStatus('Enviando telefone...', 'info');
+
+            try {
+                const response = await fetch(`${apiUrl}/send`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ phone: phone })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showStatus(`✅ Sucesso! Telefone ${phone} enviado às ${new Date().toLocaleTimeString()}`, 'success');
+                    phoneInput.value = '';
+                } else {
+                    showStatus(`❌ Erro: ${data.error || 'Não foi possível enviar'}`, 'error');
+                }
+
+            } catch (error) {
+                showStatus(`❌ Erro de conexão: ${error.message}. Verifique se a API está rodando.`, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Enviar Telefone';
+            }
+        });
+
+        function showStatus(message, type) {
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            
+            // Auto-hide após 5 segundos para mensagens de sucesso
+            if (type === 'success') {
+                setTimeout(() => {
+                    statusDiv.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        // Máscara para telefone (opcional)
+        phoneInput.addEventListener('input', function(e) {
+            let value = e.target.value;
+            
+            // Remove tudo que não for número ou +
+            value = value.replace(/[^\d+]/g, '');
+            
+            // Garante que + só aparece no início
+            if (value.indexOf('+') > 0) {
+                value = '+' + value.replace(/\+/g, '');
+            }
+            
+            e.target.value = value;
+        });
+    </script>
 </body>
 </html>
